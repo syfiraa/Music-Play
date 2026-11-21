@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Music Player</title>
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+/* =========================================================
+   CSS 1: DASAR (berlaku untuk semua tema)
+   ========================================================= */
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+body {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  font-family: 'Poppins', sans-serif;
+  color: #fff;
+  background: var(--bg);
+  background-attachment: fixed;
+}
+
+.player {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 420px;
+  padding: 34px 24px 28px;
+  text-align: center;
+  border-radius: 28px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+.title  { font-size: clamp(22px, 7vw, 30px); font-weight: 700; line-height: 1.25; }
+.artist { font-size: 14px; font-weight: 500; margin-top: 8px; color: var(--accent2); }
+
+/* ---- Progress bar custom (thumb bisa berupa Santa / daun) ---- */
+.bar {
+  position: relative;
+  height: 36px;
+  margin-top: 22px;
+  cursor: pointer;
+  touch-action: none;
+}
+.track {
+  position: absolute;
+  left: 0; right: 0; top: 50%;
+  height: 6px;
+  transform: translateY(-50%);
+  border-radius: 6px;
+  background: var(--track);
+  overflow: hidden;
+}
+.fill { height: 100%; width: 0%; background: var(--accent); }
+
+.thumb {
+  position: absolute;
+  top: 50%; left: 0%;
+  width: 36px; height: 36px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+.thumb-inner { width: 100%; height: 100%; }
+.thumb svg { width: 100%; height: 100%; filter: drop-shadow(0 2px 3px rgba(0,0,0,.4)); }
+
+.times {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+/* ---- Tombol kontrol ---- */
+.controls {
+  position: relative;
+  margin-top: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+}
+button {
+  background: none; border: none; color: #fff; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+button:active { transform: scale(.92); }
+.side svg { width: 30px; height: 30px; fill: #fff; }
+
+#playBtn { width: 94px; height: 94px; border-radius: 50%; background: var(--play-bg); }
+#playBtn svg { width: 36px; height: 36px; fill: var(--play-icon); }
+
+#likeBtn { position: absolute; right: 4px; }
+#likeBtn svg { width: 28px; height: 28px; fill: #fff; transition: fill .2s; }
+#likeBtn.liked svg { fill: #ff4d6d; }
+
+.hidden { display: none; }
+
+/* ---- Efek jatuh (salju / daun) ---- */
+#fx { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+#fx span { position: absolute; top: -10%; color: #fff; opacity: .85; animation: fall linear infinite; }
+@keyframes fall {
+  0%   { transform: translate(0, -10vh) rotate(0deg); }
+  50%  { transform: translate(24px, 50vh) rotate(180deg); }
+  100% { transform: translate(-12px, 110vh) rotate(360deg); }
+}
+
+/* ---- Thumb goyang saat lagu main ---- */
+body.playing .thumb-inner { animation: swing 1.4s ease-in-out infinite; }
+@keyframes swing {
+  0%, 100% { transform: rotate(-12deg); }
+  50%      { transform: rotate(12deg); }
+}
+
+/* =========================================================
+   CSS 2: TEMA CHRISTMAS
+   ========================================================= */
+body[data-theme="christmas"] {
+  --bg: linear-gradient(160deg, #0f5132, #08261d 70%);
+  --card: rgba(255,255,255,.09);
+  --border: rgba(255,255,255,.2);
+  --accent: #e63946;
+  --accent2: #ffd166;
+  --track: rgba(255,255,255,.3);
+  --play-bg: #e63946;
+  --play-icon: #fff;
+}
+body[data-theme="christmas"] .leaf { display: none; }
+
+/* lampu natal di atas card */
+.lights { display: none; position: absolute; top: -7px; left: 20px; right: 20px; justify-content: space-between; }
+body[data-theme="christmas"] .lights { display: flex; }
+.lights i {
+  width: 11px; height: 14px; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+  background: #e63946; animation: twinkle 1.6s ease-in-out infinite;
+}
+.lights i:nth-child(3n+2) { background: #ffd166; animation-delay: .4s; }
+.lights i:nth-child(3n)   { background: #4cc9f0; animation-delay: .8s; }
+@keyframes twinkle {
+  0%, 100% { opacity: 1;  box-shadow: 0 0 8px currentColor; }
+  50%      { opacity: .35; box-shadow: none; }
+}
+
+/* =========================================================
+   CSS 3: TEMA AUTUMN
+   ========================================================= */
+body[data-theme="autumn"] {
+  --bg: linear-gradient(160deg, #9c4a1a, #3b1d0a 70%);
+  --card: rgba(255,255,255,.08);
+  --border: rgba(255,200,150,.28);
+  --accent: #f4a261;
+  --accent2: #ffd9a0;
+  --track: rgba(255,255,255,.28);
+  --play-bg: #f4a261;
+  --play-icon: #3b1d0a;
+}
+body[data-theme="autumn"] .santa { display: none; }
+</style>
+</head>
+
+<body data-theme="christmas">
+
+<!-- =========================================================
+     HTML
+     ========================================================= -->
+<div id="fx"></div>
+
+<div class="player">
+  <div class="lights"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+
+  <h1 class="title" id="title">Music</h1>
+  <p class="artist" id="artist">Singer feat Singer</p>
+
+  <div class="bar" id="bar">
+    <div class="track"><div class="fill" id="fill"></div></div>
+
+    <div class="thumb" id="thumb">
+      <div class="thumb-inner">
+
+        <!-- Santa -->
+        <svg class="santa" viewBox="0 0 40 40">
+          <ellipse cx="20" cy="28" rx="10" ry="8" fill="#fff"/>
+          <circle cx="20" cy="21" r="8.5" fill="#ffd9b8"/>
+          <circle cx="16.5" cy="20" r="1.2" fill="#222"/>
+          <circle cx="23.5" cy="20" r="1.2" fill="#222"/>
+          <circle cx="20" cy="22.5" r="1.5" fill="#f4a58a"/>
+          <ellipse cx="20" cy="26" rx="6" ry="2.4" fill="#fff"/>
+          <path d="M11 15 C11 6 18 2 25 4 C28 5 30 8 30 15 Z" fill="#e63946"/>
+          <rect x="9" y="13" width="22" height="5" rx="2.5" fill="#fff"/>
+          <circle cx="27" cy="4" r="3.5" fill="#fff"/>
+        </svg>
+
+        <!-- Daun -->
+        <svg class="leaf" viewBox="0 0 40 40">
+          <path d="M20 3 C24 10 32 10 33 18 C29 17 28 20 31 24 C26 24 24 27 24 32 L22 31 L22 38 L18 38 L18 31 L16 32 C16 27 14 24 9 24 C12 20 11 17 7 18 C8 10 16 10 20 3 Z" fill="#e76f51"/>
+          <path d="M20 8 L20 36" stroke="#9c3d1a" stroke-width="1.4" fill="none"/>
+        </svg>
+
+      </div>
+    </div>
+  </div>
+
+  <div class="times">
+    <span id="current">0:00</span>
+    <span id="duration">0:00</span>
+  </div>
+
+  <div class="controls">
+    <button class="side" id="prevBtn" aria-label="Sebelumnya">
+      <svg viewBox="0 0 24 24"><rect x="3" y="5" width="2.5" height="14" rx="1"/><path d="M20 5.5v13a1 1 0 0 1-1.6.8l-9-6.5a1 1 0 0 1 0-1.6l9-6.5A1 1 0 0 1 20 5.5z"/></svg>
+    </button>
+
+    <button id="playBtn" aria-label="Play / Pause">
+      <svg id="iconPlay" class="hidden" viewBox="0 0 24 24"><path d="M8 5.5v13a1 1 0 0 0 1.5.9l10.5-6.5a1 1 0 0 0 0-1.8L9.5 4.6A1 1 0 0 0 8 5.5z"/></svg>
+      <svg id="iconPause" viewBox="0 0 24 24"><rect x="5" y="4" width="4.5" height="16" rx="1.5"/><rect x="14.5" y="4" width="4.5" height="16" rx="1.5"/></svg>
+    </button>
+
+    <button class="side" id="nextBtn" aria-label="Berikutnya">
+      <svg viewBox="0 0 24 24"><rect x="18.5" y="5" width="2.5" height="14" rx="1"/><path d="M4 5.5v13a1 1 0 0 0 1.6.8l9-6.5a1 1 0 0 0 0-1.6l-9-6.5A1 1 0 0 0 4 5.5z"/></svg>
+    </button>
+
+    <button id="likeBtn" aria-label="Suka">
+      <svg viewBox="0 0 24 24"><path d="M12 21s-7.5-4.6-9.6-9.2C1 8.6 2.8 5 6.3 5c2 0 3.5 1.1 4.2 2.4h3C14.2 6.1 15.7 5 17.7 5c3.5 0 5.3 3.6 3.9 6.8C19.5 16.4 12 21 12 21z"/></svg>
+    </button>
+  </div>
+</div>
+
+<audio id="audio" preload="metadata"></audio>
+
+<script>
+/* =========================================================
+   JS 1: DAFTAR LAGU  (theme: "christmas" atau "autumn")
+   Ganti src sesuai nama file mp3 kamu
+   ========================================================= */
+const playlist = [
+  { title: "Merry Christmas Please Don't Call", artist: "Bleachers",     src: "tmpq4de1699.mp3",     theme: "christmas" },
+  { title: "The Subway",                        artist: "Chappell Roan", src: "tmp352bttym.mp3", theme: "autumn" },
+];
+
+/* =========================================================
+   JS 2: EFEK JATUH (salju / daun)
+   ========================================================= */
+const FX = {
+  christmas: ['❄', '❅', '❆'],
+  autumn:    ['🍂', '🍁', '🍃'],
+};
+const fx = document.getElementById('fx');
+
+function spawnFx(theme) {
+  fx.innerHTML = '';
+  const list = FX[theme] || [];
+  if (!list.length) return;
+  for (let i = 0; i < 18; i++) {
+    const s = document.createElement('span');
+    s.textContent = list[i % list.length];
+    s.style.left = Math.random() * 100 + '%';
+    s.style.fontSize = (12 + Math.random() * 16) + 'px';
+    s.style.animationDuration = (7 + Math.random() * 8) + 's';
+    s.style.animationDelay = (-Math.random() * 12) + 's';
+    fx.appendChild(s);
+  }
+}
+
+/* =========================================================
+   JS 3: PLAYER
+   ========================================================= */
+const $ = id => document.getElementById(id);
+const audio = $('audio'), titleEl = $('title'), artistEl = $('artist');
+const curEl = $('current'), durEl = $('duration');
+const iconPlay = $('iconPlay'), iconPause = $('iconPause');
+const likeBtn = $('likeBtn');
+const bar = $('bar'), fill = $('fill'), thumb = $('thumb');
+
+let index = 0;
+let dragging = false;
+
+const fmt = s => {
+  if (!isFinite(s)) return "0:00";
+  const m = Math.floor(s / 60);
+  const d = Math.floor(s % 60).toString().padStart(2, '0');
+  return m + ":" + d;
+};
+
+function setProgress(p) {
+  p = Math.max(0, Math.min(100, p));
+  fill.style.width = p + '%';
+  thumb.style.left = p + '%';
+}
+
+function setIcon(playing) {
+  iconPlay.classList.toggle('hidden', playing);
+  iconPause.classList.toggle('hidden', !playing);
+  document.body.classList.toggle('playing', playing);
+}
+
+function loadSong(i, autoplay = false) {
+  const s = playlist[i];
+  audio.src = s.src;
+  titleEl.textContent = s.title;
+  artistEl.textContent = s.artist;
+  document.body.dataset.theme = s.theme;
+  spawnFx(s.theme);
+  setProgress(0);
+  curEl.textContent = "0:00";
+  durEl.textContent = "0:00";
+  likeBtn.classList.remove('liked');
+  if (autoplay) audio.play().catch(() => {});
+  setIcon(autoplay);
+}
+
+/* ---- play / pause / next / prev ---- */
+$('playBtn').addEventListener('click', () => {
+  if (audio.paused) audio.play().catch(() => {});
+  else audio.pause();
+});
+audio.addEventListener('play',  () => setIcon(true));
+audio.addEventListener('pause', () => setIcon(false));
+
+$('nextBtn').addEventListener('click', () => {
+  index = (index + 1) % playlist.length;
+  loadSong(index, true);
+});
+$('prevBtn').addEventListener('click', () => {
+  if (audio.currentTime > 3) { audio.currentTime = 0; return; }
+  index = (index - 1 + playlist.length) % playlist.length;
+  loadSong(index, true);
+});
+audio.addEventListener('ended', () => {
+  index = (index + 1) % playlist.length;
+  loadSong(index, true);
+});
+
+/* ---- waktu & progress ---- */
+audio.addEventListener('loadedmetadata', () => { durEl.textContent = fmt(audio.duration); });
+audio.addEventListener('timeupdate', () => {
+  if (dragging || !audio.duration) return;
+  setProgress((audio.currentTime / audio.duration) * 100);
+  curEl.textContent = fmt(audio.currentTime);
+});
+
+/* ---- geser thumb (sentuh / mouse) ---- */
+function pctFromEvent(e) {
+  const r = bar.getBoundingClientRect();
+  return ((e.clientX - r.left) / r.width) * 100;
+}
+function previewSeek(e) {
+  const p = Math.max(0, Math.min(100, pctFromEvent(e)));
+  setProgress(p);
+  if (audio.duration) curEl.textContent = fmt((p / 100) * audio.duration);
+}
+bar.addEventListener('pointerdown', e => {
+  dragging = true;
+  bar.setPointerCapture(e.pointerId);
+  previewSeek(e);
+});
+bar.addEventListener('pointermove', e => { if (dragging) previewSeek(e); });
+bar.addEventListener('pointerup', e => {
+  if (!dragging) return;
+  dragging = false;
+  const p = Math.max(0, Math.min(100, pctFromEvent(e)));
+  if (audio.duration) audio.currentTime = (p / 100) * audio.duration;
+});
+bar.addEventListener('pointercancel', () => { dragging = false; });
+
+/* ---- tombol love ---- */
+likeBtn.addEventListener('click', () => likeBtn.classList.toggle('liked'));
+
+/* ---- mulai ---- */
+loadSong(index, false);
+</script>
+</body>
+</html>
